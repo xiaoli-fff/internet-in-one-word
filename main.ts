@@ -16,28 +16,49 @@ import { join } from 'node:path';
 // leaving. It makes a reader laugh, then nod.
 const WORD = 'groupchat';
 
-// Gate (competition.yaml): /output/entry.txt must be UTF-8 text of 1-30
-// characters, not only whitespace, and a single word. validateEntry checks
-// each of those items separately so a failure names the gate item that was
-// missed instead of a bare character count.
-function validateEntry(word: string, maxChars: number): string {
+// The gate in competition.yaml caps the entry at 30 characters. Naming the
+// cap keeps the number in one place and makes the comment the reason the
+// limit exists, instead of a bare 30 buried in a function call.
+const MAX_CHARS = 30;
+
+// Each gate item gets its own named check so a failure names the item that
+// was missed instead of a bare character count. The checks run in the order
+// the gate states them: non-blank text, a single line, a single word, then
+// the length cap.
+function checkNotBlank(word: string): void {
   if (word.trim().length === 0) {
     throw new Error('gate failed: entry must not be only whitespace');
   }
+}
+
+function checkSingleLine(word: string): void {
   if (word.includes('\n') || word.includes('\r')) {
     throw new Error('gate failed: entry must be a single line with no line break');
   }
+}
+
+function checkSingleWord(word: string): void {
   if (/\s/.test(word)) {
     throw new Error('gate failed: entry must be a single word with no spaces');
   }
+}
+
+function checkLength(word: string, maxChars: number): void {
   const chars = [...word].length;
   if (chars < 1 || chars > maxChars) {
     throw new Error(`gate failed: entry must be 1-${maxChars} characters, got ${chars}`);
   }
+}
+
+function validateEntry(word: string, maxChars: number): string {
+  checkNotBlank(word);
+  checkSingleLine(word);
+  checkSingleWord(word);
+  checkLength(word, maxChars);
   return word + '\n';
 }
 
-const ENTRY = validateEntry(WORD, 30);
+const ENTRY = validateEntry(WORD, MAX_CHARS);
 
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 mkdirSync(outDir, { recursive: true });
